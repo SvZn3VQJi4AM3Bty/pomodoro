@@ -12,7 +12,15 @@
     longMinutes: 15,
     longBreakEvery: 4,
     autoStartNext: false,
+    /** @type {"single"|"double"|"triple"|"long"} */
+    endSoundPattern: "triple",
+    /** @type {"low"|"med"|"high"} */
+    endSoundVolume: "med",
+    endVibrate: true,
   });
+
+  const SOUND_PATTERNS = new Set(["single", "double", "triple", "long"]);
+  const SOUND_VOLUMES = new Set(["low", "med", "high"]);
 
   /** @type {"focus"|"short"|"long"} */
   const Mode = {
@@ -37,7 +45,11 @@
     longMinutes: document.getElementById("longMinutes"),
     longBreakEvery: document.getElementById("longBreakEvery"),
     autoStartNext: document.getElementById("autoStartNext"),
+    endSoundPattern: document.getElementById("endSoundPattern"),
+    endSoundVolume: document.getElementById("endSoundVolume"),
+    endVibrate: document.getElementById("endVibrate"),
     restoreDefaultsBtn: document.getElementById("restoreDefaultsBtn"),
+    previewEndSoundBtn: document.getElementById("previewEndSoundBtn"),
   };
 
   function clampInt(value, min, max, fallback) {
@@ -51,12 +63,24 @@
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return { ...DEFAULTS };
       const parsed = JSON.parse(raw);
+      const patternRaw =
+        typeof parsed.endSoundPattern === "string" && SOUND_PATTERNS.has(parsed.endSoundPattern)
+          ? parsed.endSoundPattern
+          : DEFAULTS.endSoundPattern;
+      const volumeRaw =
+        typeof parsed.endSoundVolume === "string" && SOUND_VOLUMES.has(parsed.endSoundVolume)
+          ? parsed.endSoundVolume
+          : DEFAULTS.endSoundVolume;
       return {
         focusMinutes: clampInt(parsed.focusMinutes, 1, 180, DEFAULTS.focusMinutes),
         shortMinutes: clampInt(parsed.shortMinutes, 1, 60, DEFAULTS.shortMinutes),
         longMinutes: clampInt(parsed.longMinutes, 1, 120, DEFAULTS.longMinutes),
         longBreakEvery: clampInt(parsed.longBreakEvery, 2, 12, DEFAULTS.longBreakEvery),
         autoStartNext: Boolean(parsed.autoStartNext),
+        endSoundPattern: patternRaw,
+        endSoundVolume: volumeRaw,
+        endVibrate:
+          typeof parsed.endVibrate === "boolean" ? parsed.endVibrate : DEFAULTS.endVibrate,
       };
     } catch {
       return { ...DEFAULTS };
@@ -116,29 +140,106 @@
   window.addEventListener("pointerdown", unlockOnce, { once: true });
   window.addEventListener("keydown", unlockOnce, { once: true });
 
-  // シンプルな通知音（外部ファイルなし）
-  function beep() {
-    if (!audioUnlocked) return;
+  /** @type {AudioContext | null} */
+  let sharedAudioCtx = null;
+
+  function getAudioContext() {
+    if (!sharedAudioCtx) {
+      sharedAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (sharedAudioCtx.state === "suspended") {
+      void sharedAudioCtx.resume();
+    }
+    return sharedAudioCtx;
+  }
+
+  const settings = loadSettings();
+
+  /**
+   * @param {{ endSoundVolume: "low"|"med"|"high" }} prefs
+   */
+  function endSoundVolumeMultiplierFor(prefs) {
+    if (prefs.endSoundVolume === "low") return 0.55;
+    if (prefs.endSoundVolume === "high") return 1.45;
+    return 1.0;
+  }
+
+  /**
+   * 終了通知の音・振動（外部音声ファイルなし）。
+   * @param {{ endSoundPattern: string, endSoundVolume: string, endVibrate: boolean }} prefs
+   */
+  function playEndSound(prefs) {
+    if (prefs.endVibrate && typeof navigator.vibrate === "function") {
+      try {
+        let pattern;
+        if (prefs.endSoundPattern === "single") {
+          pattern = [220];
+        } else if (prefs.endSoundPattern === "double") {
+          pattern = [140, 100, 200];
+        } else if (prefs.endSoundPattern === "long") {
+          pattern = [280];
+        } else {
+          pattern = [160, 110, 160, 110, 220];
+        }
+        navigator.vibrate(pattern);
+      } catch {
+        // 無視
+      }
+    }
+
     try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.type = "sine";
-      o.frequency.value = 880;
-      g.gain.value = 0.08;
-      o.connect(g);
-      g.connect(ctx.destination);
-      o.start();
-      setTimeout(() => {
-        o.stop();
-        void ctx.close();
-      }, 180);
+      const ctx = getAudioContext();
+      const now = ctx.currentTime;
+      const volMul = endSoundVolumeMultiplierFor(prefs);
+      const cap = 0.32;
+
+      /**
+       * @param {number} startAt
+       * @param {number} freqHz
+       * @param {number} durationSec
+       * @param {number} peakGain
+       */
+      const playTone = (startAt, freqHz, durationSec, peakGain) => {
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(freqHz, startAt);
+
+        const peak = Math.min(cap, Math.max(0.02, peakGain * volMul));
+        const endAt = startAt + durationSec;
+        g.gain.setValueAtTime(0.0001, startAt);
+        g.gain.exponentialRampToValueAtTime(peak, startAt + 0.025);
+        g.gain.exponentialRampToValueAtTime(0.0001, endAt);
+
+        osc.connect(g);
+        g.connect(ctx.destination);
+        osc.start(startAt);
+        osc.stop(endAt + 0.02);
+      };
+
+      const base = 0.17;
+      const p = prefs.endSoundPattern;
+      if (p === "single") {
+        playTone(now, 880, 0.42, base);
+      } else if (p === "double") {
+        playTone(now, 880, 0.28, base);
+        playTone(now + 0.34, 1046, 0.28, base * 0.95);
+      } else if (p === "long") {
+        playTone(now, 698, 0.78, base * 1.05);
+      } else {
+        playTone(now + 0.0, 880, 0.32, base);
+        playTone(now + 0.34, 1046, 0.32, base);
+        playTone(now + 0.68, 784, 0.38, base * 1.05);
+      }
     } catch {
       // 失敗してもアプリ自体は動かす
     }
   }
 
-  const settings = loadSettings();
+  function beep() {
+    if (!audioUnlocked) return;
+    playEndSound(settings);
+  }
 
   const persisted = loadState();
   const initialMode =
@@ -282,15 +383,36 @@
     el.longMinutes.value = String(settings.longMinutes);
     el.longBreakEvery.value = String(settings.longBreakEvery);
     el.autoStartNext.checked = settings.autoStartNext;
+    el.endSoundPattern.value = settings.endSoundPattern;
+    el.endSoundVolume.value = settings.endSoundVolume;
+    el.endVibrate.checked = settings.endVibrate;
+  }
+
+  function readSoundPrefsFromForm() {
+    const patternVal =
+      typeof el.endSoundPattern.value === "string" && SOUND_PATTERNS.has(el.endSoundPattern.value)
+        ? el.endSoundPattern.value
+        : DEFAULTS.endSoundPattern;
+    const volumeVal =
+      typeof el.endSoundVolume.value === "string" && SOUND_VOLUMES.has(el.endSoundVolume.value)
+        ? el.endSoundVolume.value
+        : DEFAULTS.endSoundVolume;
+    return {
+      endSoundPattern: patternVal,
+      endSoundVolume: volumeVal,
+      endVibrate: Boolean(el.endVibrate.checked),
+    };
   }
 
   function applySettingsFromForm() {
+    const sound = readSoundPrefsFromForm();
     const next = {
       focusMinutes: clampInt(el.focusMinutes.value, 1, 180, DEFAULTS.focusMinutes),
       shortMinutes: clampInt(el.shortMinutes.value, 1, 60, DEFAULTS.shortMinutes),
       longMinutes: clampInt(el.longMinutes.value, 1, 120, DEFAULTS.longMinutes),
       longBreakEvery: clampInt(el.longBreakEvery.value, 2, 12, DEFAULTS.longBreakEvery),
       autoStartNext: Boolean(el.autoStartNext.checked),
+      ...sound,
     };
     Object.assign(settings, next);
     saveSettings(settings);
@@ -326,6 +448,12 @@
       saveSettings(settings);
       syncSettingsForm();
       reset(false);
+    });
+
+    el.previewEndSoundBtn.addEventListener("click", () => {
+      audioUnlocked = true;
+      void getAudioContext().resume();
+      playEndSound(readSoundPrefsFromForm());
     });
 
     // 復元：保存時刻が古すぎる場合は捨てる（長期放置でおかしくなるのを避ける）

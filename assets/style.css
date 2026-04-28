@@ -235,6 +235,26 @@ body{
   border-color: rgba(124,92,255,.55);
 }
 
+select.input{
+  cursor: pointer;
+}
+
+.previewSoundRow{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.previewSoundHint{
+  margin: 0;
+  flex: 1;
+  min-width: 200px;
+  color: var(--muted2);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .toggle{
   display:flex;
   gap: 10px;
