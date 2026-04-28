@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Pomodoro Timer</title>
+    <meta name="description" content="GitHub Pagesで動くポモドーロタイマー" />
+    <link rel="stylesheet" href="./assets/style.css" />
+  </head>
+  <body>
+    <main class="app" aria-labelledby="appTitle">
+      <header class="header">
+        <h1 id="appTitle" class="title">Pomodoro Timer</h1>
+        <p class="subtitle">作業と休憩を、シンプルに。</p>
+      </header>
+
+      <section class="card" aria-label="タイマー">
+        <div class="modeRow" role="group" aria-label="モード">
+          <button id="modeFocus" class="chip" type="button" data-mode="focus" aria-pressed="true">
+            集中
+          </button>
+          <button id="modeShort" class="chip" type="button" data-mode="short" aria-pressed="false">
+            小休憩
+          </button>
+          <button id="modeLong" class="chip" type="button" data-mode="long" aria-pressed="false">
+            長休憩
+          </button>
+        </div>
+
+        <div class="timerWrap">
+          <div class="time" aria-live="polite" aria-atomic="true">
+            <span id="timeText" class="timeText">25:00</span>
+          </div>
+          <div class="progress" aria-hidden="true">
+            <div id="progressBar" class="progressBar"></div>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button id="startPauseBtn" class="btn btnPrimary" type="button">開始</button>
+          <button id="resetBtn" class="btn" type="button">リセット</button>
+        </div>
+
+        <div class="metaRow">
+          <div class="meta">
+            <span class="metaLabel">セッション</span>
+            <span id="sessionCount" class="metaValue">0</span>
+          </div>
+          <div class="meta">
+            <span class="metaLabel">状態</span>
+            <span id="statusText" class="metaValue">待機中</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" aria-label="設定">
+        <div class="cardHeader">
+          <h2 class="cardTitle">設定</h2>
+          <p class="cardDesc">保存は端末内（localStorage）です。サーバー送信はしません。</p>
+        </div>
+
+        <form id="settingsForm" class="settings" autocomplete="off">
+          <label class="field">
+            <span class="fieldLabel">集中（分）</span>
+            <input
+              id="focusMinutes"
+              class="input"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              type="number"
+              min="1"
+              max="180"
+              step="1"
+              required
+            />
+          </label>
+          <label class="field">
+            <span class="fieldLabel">小休憩（分）</span>
+            <input
+              id="shortMinutes"
+              class="input"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              type="number"
+              min="1"
+              max="60"
+              step="1"
+              required
+            />
+          </label>
+          <label class="field">
+            <span class="fieldLabel">長休憩（分）</span>
+            <input
+              id="longMinutes"
+              class="input"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              type="number"
+              min="1"
+              max="120"
+              step="1"
+              required
+            />
+          </label>
+
+          <label class="field fieldFull">
+            <span class="fieldLabel">長休憩に入るまでの集中回数</span>
+            <input
+              id="longBreakEvery"
+              class="input"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              type="number"
+              min="2"
+              max="12"
+              step="1"
+              required
+            />
+          </label>
+
+          <label class="toggle fieldFull">
+            <input id="autoStartNext" type="checkbox" />
+            <span>次のセッションを自動開始</span>
+          </label>
+
+          <div class="settingsActions">
+            <button class="btn" type="submit">保存</button>
+            <button id="restoreDefaultsBtn" class="btn btnGhost" type="button">初期値に戻す</button>
+          </div>
+        </form>
+      </section>
+
+      <footer class="footer">
+        <p class="footerText">
+          音が鳴らない場合は、ページ上で一度操作（クリック）してから使ってください（ブラウザの制限です）。
+        </p>
+      </footer>
+    </main>
+
+    <script src="./assets/app.js" defer></script>
+  </body>
+</html>

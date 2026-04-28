@@ -1,0 +1,17 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Node (もし将来導入しても汚れにくいように)
+node_modules/
+dist/
+build/
+.parcel-cache/
+.vite/
+
+# Env (秘密情報が入りがちなので除外)
+.env
+.env.*
