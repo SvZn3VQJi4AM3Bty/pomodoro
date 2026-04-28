@@ -9,7 +9,7 @@
   "theme_color": "#7c5cff",
   "icons": [
     {
-      "src": "./doqro.png",
+      "src": "./doqro.png?v=20260428",
       "sizes": "1024x1024",
       "type": "image/png",
       "purpose": "any"
