@@ -1,6 +1,6 @@
-# Pomodoro (GitHub Pages)
+# Okonai (GitHub Pages)
 
-GitHub Pages で動く、静的ファイル（HTML/CSS/JSのみ）のポモドーロタイマーです。
+GitHub Pages で動く、静的ファイル（HTML/CSS/JSのみ）のカレンダーとポモドーロタイマーです。
 
 ## 主な機能
 

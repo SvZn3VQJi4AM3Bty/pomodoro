@@ -1,7 +1,7 @@
 {
-  "name": "Pomodoro Timer",
-  "short_name": "Pomodoro",
-  "description": "GitHub Pagesで動くポモドーロタイマー",
+  "name": "Okonai Dashboard",
+  "short_name": "Okonai",
+  "description": "時間と没入のダッシュボード",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
