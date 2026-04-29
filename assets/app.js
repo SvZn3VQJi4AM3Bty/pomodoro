@@ -16,7 +16,6 @@
     endSoundPattern: "triple",
     /** @type {"low"|"med"|"high"} */
     endSoundVolume: "med",
-    endVibrate: true,
   });
 
   const SOUND_PATTERNS = new Set(["single", "double", "triple", "long"]);
@@ -47,9 +46,6 @@
     autoStartNext: document.getElementById("autoStartNext"),
     endSoundPattern: document.getElementById("endSoundPattern"),
     endSoundVolume: document.getElementById("endSoundVolume"),
-    endVibrate: document.getElementById("endVibrate"),
-    vibrateSupportText: document.getElementById("vibrateSupportText"),
-    vibrateRequestText: document.getElementById("vibrateRequestText"),
     restoreDefaultsBtn: document.getElementById("restoreDefaultsBtn"),
     previewEndSoundBtn: document.getElementById("previewEndSoundBtn"),
   };
@@ -81,8 +77,6 @@
         autoStartNext: Boolean(parsed.autoStartNext),
         endSoundPattern: patternRaw,
         endSoundVolume: volumeRaw,
-        endVibrate:
-          typeof parsed.endVibrate === "boolean" ? parsed.endVibrate : DEFAULTS.endVibrate,
       };
     } catch {
       return { ...DEFAULTS };
@@ -186,33 +180,10 @@
   }
 
   /**
-   * 終了通知の音・振動（外部音声ファイルなし）。
-   * @param {{ endSoundPattern: string, endSoundVolume: string, endVibrate: boolean }} prefs
+   * 終了通知の音（外部音声ファイルなし）。
+   * @param {{ endSoundPattern: string, endSoundVolume: string }} prefs
    */
   async function playEndSound(prefs) {
-    if (!prefs.endVibrate) {
-      setVibrateRequestText("OFF");
-    } else if (typeof navigator.vibrate === "function") {
-      try {
-        let pattern;
-        if (prefs.endSoundPattern === "single") {
-          pattern = [220];
-        } else if (prefs.endSoundPattern === "double") {
-          pattern = [140, 100, 200];
-        } else if (prefs.endSoundPattern === "long") {
-          pattern = [280];
-        } else {
-          pattern = [160, 110, 160, 110, 220];
-        }
-        const accepted = navigator.vibrate(pattern);
-        setVibrateRequestText(accepted ? "受理" : "拒否");
-      } catch {
-        setVibrateRequestText("失敗");
-      }
-    } else {
-      setVibrateRequestText("未対応");
-    }
-
     try {
       const ctx = await resumeAudioContextIfNeeded();
       const now = ctx.currentTime;
@@ -412,7 +383,6 @@
     el.autoStartNext.checked = settings.autoStartNext;
     el.endSoundPattern.value = settings.endSoundPattern;
     el.endSoundVolume.value = settings.endSoundVolume;
-    el.endVibrate.checked = settings.endVibrate;
   }
 
   function readSoundPrefsFromForm() {
@@ -427,22 +397,7 @@
     return {
       endSoundPattern: patternVal,
       endSoundVolume: volumeVal,
-      endVibrate: Boolean(el.endVibrate.checked),
     };
-  }
-
-  function setVibrateSupportText() {
-    if (!el.vibrateSupportText) return;
-    const supported = typeof navigator.vibrate === "function";
-    el.vibrateSupportText.textContent = `この端末は振動API対応: ${supported ? "あり" : "なし"}`;
-  }
-
-  /**
-   * @param {"未実行"|"受理"|"拒否"|"未対応"|"OFF"|"失敗"} status
-   */
-  function setVibrateRequestText(status) {
-    if (!el.vibrateRequestText) return;
-    el.vibrateRequestText.textContent = `振動リクエスト: ${status}`;
   }
 
   function applySettingsFromForm() {
@@ -467,8 +422,6 @@
 
   function init() {
     syncSettingsForm();
-    setVibrateSupportText();
-    setVibrateRequestText("未実行");
 
     el.startPauseBtn.addEventListener("click", () => {
       if (running) pause();
