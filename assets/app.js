@@ -12,13 +12,16 @@
     longMinutes: 15,
     longBreakEvery: 4,
     autoStartNext: false,
-    /** @type {"single"|"double"|"triple"|"long"} */
+    showCurrentTime: true,
+    showTimerNumber: false,
+    showInfoSections: true,
+    /** @type {"mute"|"single"|"double"|"triple"|"long"} */
     endSoundPattern: "triple",
     /** @type {"low"|"med"|"high"} */
     endSoundVolume: "med",
   });
 
-  const SOUND_PATTERNS = new Set(["single", "double", "triple", "long"]);
+  const SOUND_PATTERNS = new Set(["mute", "single", "double", "triple", "long"]);
   const SOUND_VOLUMES = new Set(["low", "med", "high"]);
 
   /** @type {"focus"|"short"|"long"} */
@@ -28,9 +31,42 @@
     LONG: "long",
   };
 
+  const MODE_THEME = Object.freeze({
+    [Mode.FOCUS]: Object.freeze({
+      accent: "#5f6672",
+      label: "#e6edf8",
+      chipBorder: "#5c6673",
+      chipBg: "#343d49",
+      chipText: "#f1f5fb",
+    }),
+    [Mode.SHORT]: Object.freeze({
+      accent: "#4f7b63",
+      label: "#dff3e7",
+      chipBorder: "#4f7b63",
+      chipBg: "#2b4336",
+      chipText: "#ecfaf1",
+    }),
+    [Mode.LONG]: Object.freeze({
+      accent: "#75608b",
+      label: "#eee4fa",
+      chipBorder: "#75608b",
+      chipBg: "#43384f",
+      chipText: "#f5effc",
+    }),
+  });
+
   const el = {
     timeText: document.getElementById("timeText"),
-    progressBar: document.getElementById("progressBar"),
+    timerNumberWrap: document.getElementById("timerNumberWrap"),
+    progressCircle: document.getElementById("progressCircle"),
+    currentTimeWrap: document.getElementById("currentTimeWrap"),
+    infoSectionsWrap: document.getElementById("infoSectionsWrap"),
+    currentDateText: document.getElementById("currentDateText"),
+    currentTimeText: document.getElementById("currentTimeText"),
+    calendarMonthText: document.getElementById("calendarMonthText"),
+    calendarGrid: document.getElementById("calendarGrid"),
+    calendarPrevBtn: document.getElementById("calendarPrevBtn"),
+    calendarNextBtn: document.getElementById("calendarNextBtn"),
     startPauseBtn: document.getElementById("startPauseBtn"),
     resetBtn: document.getElementById("resetBtn"),
     resetSessionsBtn: document.getElementById("resetSessionsBtn"),
@@ -45,6 +81,9 @@
     longMinutes: document.getElementById("longMinutes"),
     longBreakEvery: document.getElementById("longBreakEvery"),
     autoStartNext: document.getElementById("autoStartNext"),
+    showTimerNumber: document.getElementById("showTimerNumber"),
+    showCurrentTime: document.getElementById("showCurrentTime"),
+    showInfoSections: document.getElementById("showInfoSections"),
     endSoundPattern: document.getElementById("endSoundPattern"),
     endSoundVolume: document.getElementById("endSoundVolume"),
     restoreDefaultsBtn: document.getElementById("restoreDefaultsBtn"),
@@ -76,6 +115,11 @@
         longMinutes: clampInt(parsed.longMinutes, 1, 120, DEFAULTS.longMinutes),
         longBreakEvery: clampInt(parsed.longBreakEvery, 2, 12, DEFAULTS.longBreakEvery),
         autoStartNext: Boolean(parsed.autoStartNext),
+        showCurrentTime: typeof parsed.showCurrentTime === "boolean" ? parsed.showCurrentTime : DEFAULTS.showCurrentTime,
+        showTimerNumber:
+          typeof parsed.showTimerNumber === "boolean" ? parsed.showTimerNumber : DEFAULTS.showTimerNumber,
+        showInfoSections:
+          typeof parsed.showInfoSections === "boolean" ? parsed.showInfoSections : DEFAULTS.showInfoSections,
         endSoundPattern: patternRaw,
         endSoundVolume: volumeRaw,
       };
@@ -111,8 +155,153 @@
     return `${mm}:${ss}`;
   }
 
+  function formatCurrentTime(nowDate) {
+    const hh = String(nowDate.getHours()).padStart(2, "0");
+    const mm = String(nowDate.getMinutes()).padStart(2, "0");
+    const ss = String(nowDate.getSeconds()).padStart(2, "0");
+    return `${hh}:${mm}:${ss}`;
+  }
+
+  function formatCurrentDate(nowDate) {
+    const yyyy = String(nowDate.getFullYear());
+    const mm = String(nowDate.getMonth() + 1).padStart(2, "0");
+    const dd = String(nowDate.getDate()).padStart(2, "0");
+    const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
+    const weekday = weekdays[nowDate.getDay()];
+    return `${yyyy}/${mm}/${dd} (${weekday})`;
+  }
+
+  function dateKey(year, month1, day) {
+    return `${year}-${String(month1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  }
+
+  function nthMonday(year, monthIndex, nth) {
+    const firstDayWeek = new Date(year, monthIndex, 1).getDay();
+    const firstMonday = 1 + ((8 - firstDayWeek) % 7);
+    return firstMonday + (nth - 1) * 7;
+  }
+
+  // 春分・秋分の近似式（1980-2099年の一般的な判定に十分な精度）
+  function vernalEquinoxDay(year) {
+    return Math.floor(20.8431 + 0.242194 * (year - 1980) - Math.floor((year - 1980) / 4));
+  }
+
+  function autumnEquinoxDay(year) {
+    return Math.floor(23.2488 + 0.242194 * (year - 1980) - Math.floor((year - 1980) / 4));
+  }
+
+  function getJapaneseHolidays(year) {
+    /** @type {Map<string, string>} */
+    const map = new Map();
+    const add = (month1, day, name) => map.set(dateKey(year, month1, day), name);
+
+    // 固定日
+    add(1, 1, "元日");
+    add(2, 11, "建国記念の日");
+    add(2, 23, "天皇誕生日");
+    add(4, 29, "昭和の日");
+    add(5, 3, "憲法記念日");
+    add(5, 4, "みどりの日");
+    add(5, 5, "こどもの日");
+    add(8, 11, "山の日");
+    add(11, 3, "文化の日");
+    add(11, 23, "勤労感謝の日");
+
+    // ハッピーマンデー
+    add(1, nthMonday(year, 0, 2), "成人の日");
+    add(7, nthMonday(year, 6, 3), "海の日");
+    add(9, nthMonday(year, 8, 3), "敬老の日");
+    add(10, nthMonday(year, 9, 2), "スポーツの日");
+
+    // 春分・秋分
+    add(3, vernalEquinoxDay(year), "春分の日");
+    add(9, autumnEquinoxDay(year), "秋分の日");
+
+    // 振替休日（日曜に重なった祝日の翌平日）
+    const baseEntries = Array.from(map.entries());
+    for (const [key, name] of baseEntries) {
+      const d = new Date(`${key}T00:00:00`);
+      if (d.getDay() !== 0) continue;
+      const sub = new Date(d);
+      do {
+        sub.setDate(sub.getDate() + 1);
+      } while (map.has(dateKey(sub.getFullYear(), sub.getMonth() + 1, sub.getDate())));
+      map.set(
+        dateKey(sub.getFullYear(), sub.getMonth() + 1, sub.getDate()),
+        `振替休日（${name}）`
+      );
+    }
+
+    // 国民の休日（祝日に挟まれた平日）
+    const day = new Date(year, 0, 2);
+    while (day.getFullYear() === year) {
+      const prev = new Date(day);
+      prev.setDate(day.getDate() - 1);
+      const next = new Date(day);
+      next.setDate(day.getDate() + 1);
+      const currKey = dateKey(year, day.getMonth() + 1, day.getDate());
+      const prevKey = dateKey(prev.getFullYear(), prev.getMonth() + 1, prev.getDate());
+      const nextKey = dateKey(next.getFullYear(), next.getMonth() + 1, next.getDate());
+      if (!map.has(currKey) && map.has(prevKey) && map.has(nextKey) && day.getDay() !== 0) {
+        map.set(currKey, "国民の休日");
+      }
+      day.setDate(day.getDate() + 1);
+    }
+
+    return map;
+  }
+
+  function renderCalendar(nowDate) {
+    const displayDate = new Date(nowDate.getFullYear(), nowDate.getMonth() + calendarOffsetMonths, 1);
+    const year = displayDate.getFullYear();
+    const month = displayDate.getMonth();
+    const holidays = getJapaneseHolidays(year);
+
+    el.calendarMonthText.textContent = `${year}年${String(month + 1).padStart(2, "0")}月`;
+
+    const firstWeekday = new Date(year, month, 1).getDay();
+    const lastDate = new Date(year, month + 1, 0).getDate();
+    const totalCells = Math.ceil((firstWeekday + lastDate) / 7) * 7;
+
+    const fragment = document.createDocumentFragment();
+    for (let i = 0; i < totalCells; i += 1) {
+      const cell = document.createElement("span");
+      cell.className = "calendarDay";
+      if (i < firstWeekday || i >= firstWeekday + lastDate) {
+        cell.classList.add("isBlank");
+        cell.textContent = "";
+      } else {
+        const day = i - firstWeekday + 1;
+        const weekday = i % 7;
+        const key = dateKey(year, month + 1, day);
+        const holidayName = holidays.get(key);
+        cell.textContent = String(day);
+        if (weekday === 0) {
+          cell.classList.add("isSunday");
+        } else if (weekday === 6) {
+          cell.classList.add("isSaturday");
+        }
+        if (holidayName) {
+          cell.classList.add("isHoliday");
+          cell.title = holidayName;
+        }
+        const isToday =
+          calendarOffsetMonths === 0 &&
+          day === nowDate.getDate() &&
+          month === nowDate.getMonth() &&
+          year === nowDate.getFullYear();
+        if (isToday) {
+          cell.classList.add("isToday");
+        }
+      }
+      fragment.appendChild(cell);
+    }
+
+    el.calendarGrid.replaceChildren(fragment);
+  }
+
   function modeLabel(mode) {
-    if (mode === Mode.FOCUS) return "集中";
+    if (mode === Mode.FOCUS) return "没入";
     if (mode === Mode.SHORT) return "小休憩";
     return "長休憩";
   }
@@ -186,6 +375,7 @@
    */
   async function playEndSound(prefs) {
     try {
+      if (prefs.endSoundPattern === "mute") return;
       const ctx = await resumeAudioContextIfNeeded();
       const now = ctx.currentTime;
       const volMul = endSoundVolumeMultiplierFor(prefs);
@@ -254,6 +444,8 @@
   let remainingSec = clampInt(persisted?.remainingSec, 0, durationSec, durationSec);
   let startedAtMs = null; // epoch ms
   let rafId = null;
+  let currentTimeIntervalId = null;
+  let calendarOffsetMonths = 0;
 
   function setDocumentTitle() {
     const prefix = running ? "▶" : "⏸";
@@ -269,11 +461,26 @@
     setPressed(el.modeLong, mode === Mode.LONG);
   }
 
+  function applyModeTheme() {
+    const theme = MODE_THEME[mode] || MODE_THEME[Mode.FOCUS];
+    const rootStyle = document.documentElement.style;
+    rootStyle.setProperty("--accent", theme.accent);
+    rootStyle.setProperty("--modeLabelColor", theme.label);
+    rootStyle.setProperty("--modeChipBorder", theme.chipBorder);
+    rootStyle.setProperty("--modeChipBg", theme.chipBg);
+    rootStyle.setProperty("--modeChipText", theme.chipText);
+  }
+
   function render() {
+    applyModeTheme();
     el.timeText.textContent = formatMMSS(remainingSec);
+    el.timerNumberWrap.hidden = !settings.showTimerNumber;
+    el.currentTimeWrap.hidden = !settings.showCurrentTime;
+    el.infoSectionsWrap.hidden = !settings.showInfoSections;
 
     const pct = durationSec === 0 ? 0 : ((durationSec - remainingSec) / durationSec) * 100;
-    el.progressBar.style.width = `${Math.min(100, Math.max(0, pct))}%`;
+    const clampedPct = Math.min(100, Math.max(0, pct));
+    el.progressCircle.style.setProperty("--progress", `${clampedPct}%`);
 
     el.startPauseBtn.textContent = running ? "一時停止" : "開始";
     el.statusText.textContent = running ? `${modeLabel(mode)}中` : "待機中";
@@ -281,6 +488,21 @@
 
     renderModeButtons();
     setDocumentTitle();
+  }
+
+  function renderCurrentTime() {
+    const now = new Date();
+    el.currentDateText.textContent = formatCurrentDate(now);
+    el.currentTimeText.textContent = formatCurrentTime(now);
+    renderCalendar(now);
+  }
+
+  function startCurrentTimeTicker() {
+    renderCurrentTime();
+    if (currentTimeIntervalId != null) {
+      window.clearInterval(currentTimeIntervalId);
+    }
+    currentTimeIntervalId = window.setInterval(renderCurrentTime, 1000);
   }
 
   function persistNow() {
@@ -390,6 +612,9 @@
     el.longMinutes.value = String(settings.longMinutes);
     el.longBreakEvery.value = String(settings.longBreakEvery);
     el.autoStartNext.checked = settings.autoStartNext;
+    el.showTimerNumber.checked = settings.showTimerNumber;
+    el.showCurrentTime.checked = settings.showCurrentTime;
+    el.showInfoSections.checked = settings.showInfoSections;
     el.endSoundPattern.value = settings.endSoundPattern;
     el.endSoundVolume.value = settings.endSoundVolume;
   }
@@ -409,7 +634,8 @@
     };
   }
 
-  function applySettingsFromForm() {
+  function applySettingsFromForm(options = {}) {
+    const { resetTimer = true } = options;
     const sound = readSoundPrefsFromForm();
     const next = {
       focusMinutes: clampInt(el.focusMinutes.value, 1, 180, DEFAULTS.focusMinutes),
@@ -417,20 +643,26 @@
       longMinutes: clampInt(el.longMinutes.value, 1, 120, DEFAULTS.longMinutes),
       longBreakEvery: clampInt(el.longBreakEvery.value, 2, 12, DEFAULTS.longBreakEvery),
       autoStartNext: Boolean(el.autoStartNext.checked),
+      showTimerNumber: Boolean(el.showTimerNumber.checked),
+      showCurrentTime: Boolean(el.showCurrentTime.checked),
+      showInfoSections: Boolean(el.showInfoSections.checked),
       ...sound,
     };
     Object.assign(settings, next);
     saveSettings(settings);
 
-    // 設定変更時は現在モードの残り時間も更新（初学者向けに挙動を分かりやすく）
-    durationSec = getDurationSeconds(mode, settings);
-    remainingSec = durationSec;
+    // 時間設定が変わった場合のみ残り時間をリセットする
+    if (resetTimer) {
+      durationSec = getDurationSeconds(mode, settings);
+      remainingSec = durationSec;
+    }
     render();
     persistNow();
   }
 
   function init() {
     syncSettingsForm();
+    startCurrentTimeTicker();
 
     el.startPauseBtn.addEventListener("click", () => {
       if (running) pause();
@@ -443,16 +675,47 @@
     el.modeFocus.addEventListener("click", () => setMode(Mode.FOCUS));
     el.modeShort.addEventListener("click", () => setMode(Mode.SHORT));
     el.modeLong.addEventListener("click", () => setMode(Mode.LONG));
+    el.calendarPrevBtn.addEventListener("click", () => {
+      calendarOffsetMonths -= 1;
+      renderCurrentTime();
+    });
+    el.calendarNextBtn.addEventListener("click", () => {
+      calendarOffsetMonths += 1;
+      renderCurrentTime();
+    });
 
-    el.settingsForm.addEventListener("submit", (e) => {
-      e.preventDefault();
-      applySettingsFromForm();
+    el.settingsForm.addEventListener("change", (e) => {
+      const target = e.target;
+      if (!target || typeof target.id !== "string") return;
+      const shouldResetTimer =
+        target.id === "focusMinutes" ||
+        target.id === "shortMinutes" ||
+        target.id === "longMinutes" ||
+        target.id === "longBreakEvery";
+      applySettingsFromForm({ resetTimer: shouldResetTimer });
+    });
+
+    el.showTimerNumber.addEventListener("change", () => {
+      settings.showTimerNumber = Boolean(el.showTimerNumber.checked);
+      saveSettings(settings);
+      render();
+    });
+    el.showCurrentTime.addEventListener("change", () => {
+      settings.showCurrentTime = Boolean(el.showCurrentTime.checked);
+      saveSettings(settings);
+      render();
+    });
+    el.showInfoSections.addEventListener("change", () => {
+      settings.showInfoSections = Boolean(el.showInfoSections.checked);
+      saveSettings(settings);
+      render();
     });
 
     el.restoreDefaultsBtn.addEventListener("click", () => {
       Object.assign(settings, { ...DEFAULTS });
       saveSettings(settings);
       syncSettingsForm();
+      renderCurrentTime();
       reset(false);
     });
 

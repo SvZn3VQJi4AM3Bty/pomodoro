@@ -1,43 +1,31 @@
 :root{
-  --bg: #0b1020;
-  --card: rgba(255,255,255,.06);
-  --cardBorder: rgba(255,255,255,.10);
-  --text: rgba(255,255,255,.92);
-  --muted: rgba(255,255,255,.70);
-  --muted2: rgba(255,255,255,.55);
-  --accent: #7c5cff;
-  --accent2: #00d4ff;
+  --bg: #101214;
+  --card: #171a1e;
+  --cardBorder: #252a31;
+  --text: #edf1f7;
+  --muted: #b4bcc8;
+  --muted2: #8f98a5;
+  --accent: #5f6672;
+  --modeLabelColor: #d9e2f0;
+  --modeChipBorder: #4f5866;
+  --modeChipBg: #2b313a;
+  --modeChipText: #edf1f7;
   --danger: #ff4d6d;
-  --shadow: 0 20px 60px rgba(0,0,0,.35);
+  --shadow: 0 12px 28px rgba(0,0,0,.28);
   --radius: 18px;
-  --focusRing: 0 0 0 3px rgba(124,92,255,.35);
+  --focusRing: 0 0 0 3px rgba(151,160,172,.38);
   --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans JP", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
 }
 
-@media (prefers-color-scheme: light) {
-  :root{
-    --bg: #f6f7fb;
-    --card: rgba(0,0,0,.03);
-    --cardBorder: rgba(0,0,0,.08);
-    --text: rgba(0,0,0,.86);
-    --muted: rgba(0,0,0,.62);
-    --muted2: rgba(0,0,0,.45);
-    --shadow: 0 20px 60px rgba(15, 23, 42, .12);
-  }
-}
-
 *{ box-sizing: border-box; }
+[hidden]{ display: none !important; }
 html,body{ height:100%; }
 body{
   margin:0;
   font-family: var(--sans);
   color: var(--text);
-  background:
-    radial-gradient(1200px 600px at 20% 10%, rgba(124,92,255,.35), transparent 60%),
-    radial-gradient(1000px 600px at 80% 30%, rgba(0,212,255,.25), transparent 60%),
-    radial-gradient(900px 700px at 40% 90%, rgba(255,77,109,.18), transparent 60%),
-    var(--bg);
+  background: var(--bg);
 }
 
 .app{
@@ -49,16 +37,27 @@ body{
 }
 
 .header{
-  padding: 8px 4px 2px;
+  padding: 2px 4px;
+  display: flex;
+  justify-content: flex-end;
 }
-.title{
-  margin:0;
-  font-size: 26px;
-  letter-spacing: .2px;
+
+.globalOptions{
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
 }
-.subtitle{
-  margin: 6px 0 0;
-  color: var(--muted);
+
+.infoSectionsWrap{
+  display: grid;
+  gap: 18px;
+}
+
+.belowTimerOptions{
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -6px;
 }
 
 .card{
@@ -67,7 +66,6 @@ body{
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   padding: 18px;
-  backdrop-filter: blur(10px);
 }
 
 .modeRow{
@@ -80,7 +78,7 @@ body{
 .chip{
   appearance: none;
   border: 1px solid var(--cardBorder);
-  background: rgba(255,255,255,.04);
+  background: #1f242b;
   color: var(--text);
   padding: 8px 12px;
   border-radius: 999px;
@@ -88,44 +86,180 @@ body{
   transition: transform .06s ease, background .15s ease, border-color .15s ease;
 }
 .chip[aria-pressed="true"]{
-  border-color: rgba(124,92,255,.55);
-  background: rgba(124,92,255,.14);
+  border-color: var(--modeChipBorder);
+  background: var(--modeChipBg);
+  color: var(--modeChipText);
 }
 .chip:active{ transform: translateY(1px); }
 .chip:focus-visible{ outline: none; box-shadow: var(--focusRing); }
 
 .timerWrap{
   display:grid;
-  gap: 14px;
+  gap: 10px;
   align-items: center;
   margin: 6px 0 14px;
+  justify-items: center;
 }
+
+.currentTimeWrap{
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+}
+
+.currentTimeCard{
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+
+.currentTimeLabel{
+  color: var(--muted2);
+  font-size: 12px;
+}
+
+.currentDateText{
+  font-size: 14px;
+  color: var(--muted);
+  letter-spacing: .3px;
+}
+
+.currentTimeText{
+  font-family: var(--mono);
+  font-size: 34px;
+  letter-spacing: .6px;
+  color: var(--text);
+}
+
+.calendarWrap{
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--cardBorder);
+}
+
+.calendarHeaderRow{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.calendarMonthText{
+  font-size: 14px;
+  color: var(--muted);
+  min-width: 108px;
+  text-align: center;
+}
+
+.calendarNavBtn{
+  appearance: none;
+  border: 1px solid var(--cardBorder);
+  background: #1f242b;
+  color: var(--text);
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+}
+
+.calendarNavBtn:hover{
+  background: #252b33;
+}
+
+.calendarNavBtn:focus-visible{
+  outline: none;
+  box-shadow: var(--focusRing);
+}
+
+.calendarWeekdays,
+.calendarGrid{
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.calendarWeekdays{
+  margin-bottom: 6px;
+}
+
+.calendarWeekdays span{
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted2);
+}
+
+.calendarDay{
+  display: grid;
+  place-items: center;
+  min-height: 30px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--muted);
+  background: #1b2027;
+  border: 1px solid transparent;
+}
+
+.calendarDay.isSunday{
+  color: #d39aa2;
+}
+
+.calendarDay.isSaturday{
+  color: #9ab0d3;
+}
+
+.calendarDay.isHoliday{
+  color: #e3a2ac;
+  border-color: #704652;
+}
+
+.calendarDay.isToday{
+  color: var(--text);
+  border-color: #5c6573;
+  background: #2a313b;
+  font-weight: 600;
+}
+
+.calendarDay.isBlank{
+  background: transparent;
+  border-color: transparent;
+}
+
 .time{
   display:flex;
   justify-content:center;
 }
 .timeText{
   font-family: var(--mono);
-  font-size: 64px;
+  font-size: 44px;
   line-height: 1;
   letter-spacing: 1px;
   font-variant-numeric: tabular-nums;
+  color: var(--modeLabelColor);
 }
 
-.progress{
-  height: 10px;
-  width: 100%;
-  background: rgba(255,255,255,.08);
-  border: 1px solid var(--cardBorder);
-  border-radius: 999px;
-  overflow: hidden;
+.timerDial{
+  position: relative;
+  width: 220px;
+  height: 220px;
+  display: grid;
+  place-items: center;
 }
-.progressBar{
-  height: 100%;
-  width: 0%;
-  background: linear-gradient(90deg, var(--accent), var(--accent2));
-  border-radius: 999px;
-  transition: width .2s linear;
+
+.progressCircle{
+  --progress: 0%;
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(var(--accent) var(--progress), #1f242b 0);
+  border: 1px solid var(--cardBorder);
+  transition: background .2s linear;
+}
+
+.timerDial .time{
+  position: relative;
+  z-index: 1;
 }
 
 .controls{
@@ -138,7 +272,7 @@ body{
 .btn{
   appearance: none;
   border: 1px solid var(--cardBorder);
-  background: rgba(255,255,255,.04);
+  background: #1f242b;
   color: var(--text);
   padding: 10px 14px;
   border-radius: 12px;
@@ -146,15 +280,15 @@ body{
   transition: transform .06s ease, background .15s ease, border-color .15s ease;
   min-width: 112px;
 }
-.btn:hover{ background: rgba(255,255,255,.07); }
+.btn:hover{ background: #252b33; }
 .btn:active{ transform: translateY(1px); }
 .btn:focus-visible{ outline:none; box-shadow: var(--focusRing); }
 
 .btnPrimary{
-  border-color: rgba(124,92,255,.6);
-  background: rgba(124,92,255,.18);
+  border-color: #4f5866;
+  background: #323944;
 }
-.btnPrimary:hover{ background: rgba(124,92,255,.24); }
+.btnPrimary:hover{ background: #3a424e; }
 
 .btnGhost{
   background: transparent;
@@ -184,6 +318,10 @@ body{
 }
 .metaValue{
   font-size: 14px;
+}
+
+#statusText{
+  color: var(--modeLabelColor);
 }
 
 .cardHeader{
@@ -233,13 +371,13 @@ body{
   padding: 10px 12px;
   border-radius: 12px;
   border: 1px solid var(--cardBorder);
-  background: rgba(255,255,255,.04);
+  background: #1f242b;
   color: var(--text);
 }
 .input:focus{
   outline: none;
   box-shadow: var(--focusRing);
-  border-color: rgba(124,92,255,.55);
+  border-color: #5c6573;
 }
 
 select.input{
@@ -269,7 +407,12 @@ select.input{
   padding: 10px 12px;
   border-radius: 12px;
   border: 1px solid var(--cardBorder);
-  background: rgba(255,255,255,.03);
+  background: #1a1e24;
+}
+
+.toggleCompact{
+  width: fit-content;
+  padding: 8px 10px;
 }
 .toggle input{
   width: 18px;
@@ -306,7 +449,7 @@ select.input{
   padding: 12px;
   border-radius: 14px;
   border: 1px solid var(--cardBorder);
-  background: rgba(11, 16, 32, .92);
+  background: #13171d;
   color: var(--text);
   box-shadow: var(--shadow);
   z-index: 9999;
@@ -328,7 +471,11 @@ select.input{
 }
 
 @media (max-width: 640px){
-  .timeText{ font-size: 56px; }
+  .timerDial{
+    width: 190px;
+    height: 190px;
+  }
+  .timeText{ font-size: 40px; }
   .settings{ grid-template-columns: 1fr; }
   .btn{ min-width: 0; flex: 1; }
   .pwaUpdateBanner{

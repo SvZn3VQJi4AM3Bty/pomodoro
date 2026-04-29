@@ -4,10 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
-    <title>Pomodoro Timer</title>
-    <meta name="description" content="GitHub Pagesで動くポモドーロタイマー" />
+    <title>なそうとすることのためのおこない</title>
+    <meta name="description" content="時間管理に関する個人用アプリケーション" />
     <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex" />
-    <meta name="theme-color" content="#7c5cff" />
+    <meta name="theme-color" content="#101214" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <link rel="manifest" href="./manifest.webmanifest" />
@@ -16,16 +16,42 @@
     <link rel="stylesheet" href="./assets/style.css" />
   </head>
   <body>
-    <main class="app" aria-labelledby="appTitle">
+    <main class="app" aria-label="時刻と没入のダッシュボード">
       <header class="header">
-        <h1 id="appTitle" class="title">Pomodoro Timer</h1>
-        <p class="subtitle">作業と休憩を、シンプルに。</p>
+        <div class="globalOptions">
+          <label class="toggle toggleCompact">
+            <input id="showTimerNumber" type="checkbox" />
+            <span>残り時間</span>
+          </label>
+          <label class="toggle toggleCompact">
+            <input id="showCurrentTime" type="checkbox" />
+            <span>時計とカレンダー</span>
+          </label>
+        </div>
       </header>
+
+      <section id="currentTimeWrap" class="card currentTimeCard" aria-label="現在時刻" aria-live="off">
+        <div class="currentTimeWrap">
+          <span id="currentDateText" class="currentDateText">----/--/-- (-)</span>
+          <span id="currentTimeText" class="currentTimeText">--:--:--</span>
+        </div>
+        <div class="calendarWrap" aria-label="カレンダー">
+          <div class="calendarHeaderRow">
+            <button id="calendarPrevBtn" class="calendarNavBtn" type="button" aria-label="前の月">◀</button>
+            <span id="calendarMonthText" class="calendarMonthText">----年--月</span>
+            <button id="calendarNextBtn" class="calendarNavBtn" type="button" aria-label="次の月">▶</button>
+          </div>
+          <div class="calendarWeekdays" aria-hidden="true">
+            <span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span>
+          </div>
+          <div id="calendarGrid" class="calendarGrid"></div>
+        </div>
+      </section>
 
       <section class="card" aria-label="タイマー">
         <div class="modeRow" role="group" aria-label="モード">
           <button id="modeFocus" class="chip" type="button" data-mode="focus" aria-pressed="true">
-            集中
+            没入
           </button>
           <button id="modeShort" class="chip" type="button" data-mode="short" aria-pressed="false">
             小休憩
@@ -36,11 +62,11 @@
         </div>
 
         <div class="timerWrap">
-          <div class="time" aria-live="polite" aria-atomic="true">
-            <span id="timeText" class="timeText">25:00</span>
-          </div>
-          <div class="progress" aria-hidden="true">
-            <div id="progressBar" class="progressBar"></div>
+          <div class="timerDial" aria-hidden="true">
+            <div id="progressCircle" class="progressCircle"></div>
+            <div id="timerNumberWrap" class="time" aria-live="polite" aria-atomic="true" hidden>
+              <span id="timeText" class="timeText">25:00</span>
+            </div>
           </div>
         </div>
 
@@ -69,15 +95,22 @@
         </div>
       </section>
 
+      <div class="belowTimerOptions">
+        <label class="toggle toggleCompact">
+          <input id="showInfoSections" type="checkbox" />
+          <span>設定と使い方</span>
+        </label>
+      </div>
+
+      <div id="infoSectionsWrap" class="infoSectionsWrap">
       <section class="card" aria-label="設定">
         <div class="cardHeader">
           <h2 class="cardTitle">設定</h2>
-          <p class="cardDesc">保存は端末内（localStorage）です。サーバー送信はしません。詳しい操作は、その下の「使い方」をご覧ください。</p>
         </div>
 
         <form id="settingsForm" class="settings" autocomplete="off">
           <label class="field">
-            <span class="fieldLabel">集中（分）</span>
+            <span class="fieldLabel">没入（分）</span>
             <input
               id="focusMinutes"
               class="input"
@@ -120,7 +153,7 @@
           </label>
 
           <label class="field fieldFull">
-            <span class="fieldLabel">長休憩に入るまでの集中回数</span>
+            <span class="fieldLabel">長休憩に入るまでの没入回数</span>
             <input
               id="longBreakEvery"
               class="input"
@@ -142,6 +175,7 @@
           <label class="field fieldFull">
             <span class="fieldLabel">終了音のパターン</span>
             <select id="endSoundPattern" class="input" aria-label="終了音のパターン">
+              <option value="mute">無音</option>
               <option value="single">短い1音</option>
               <option value="double">2音（交互）</option>
               <option value="triple">3音（おすすめ）</option>
@@ -162,13 +196,9 @@
             <button id="previewEndSoundBtn" class="btn btnGhost" type="button">
               終了音を試聴
             </button>
-            <p class="previewSoundHint">
-              いまフォームに選んだパターン・音量で鳴ります（保存しなくても試せます）。
-            </p>
           </div>
 
           <div class="settingsActions">
-            <button class="btn" type="submit">保存</button>
             <button id="restoreDefaultsBtn" class="btn btnGhost" type="button">初期値に戻す</button>
           </div>
         </form>
@@ -179,24 +209,24 @@
           <h2 class="cardTitle">使い方</h2>
           <p class="cardDesc">タイマーと設定のあとに、操作の要点をまとめています。</p>
         </div>
-        <ol class="helpSteps">
-          <li><strong>モード</strong>：「集中」「小休憩」「長休憩」から選びます。タイマーが動いている間は切り替えられません（誤操作防止）。</li>
+        <ul class="helpSteps">
+          <li><strong>設定と使い方を表示</strong>：タイマーの下にあるチェックで、設定セクションと使い方セクションをまとめて表示/非表示できます。</li>
+          <li><strong>現在日時を表示</strong>：ヘッダー右上のチェックで、現在日時とカレンダーの表示が切り替えられます。</li>
+          <li><strong>カレンダーの月移動</strong>：現在日時カードの「◀」「▶」で前月・次月へ移動できます。</li>
+          <li><strong>モード</strong>：「没入」「小休憩」「長休憩」から選びます。タイマーが動いているあいだは切り替えられません（誤操作防止）。</li>
           <li><strong>開始 / 一時停止</strong>：カウントを始めたり止めたりします。</li>
           <li><strong>リセット</strong>：いまのモードの時間を最初からやり直します。</li>
           <li><strong>セッションを0にする</strong>：セッション数だけを手動で0に戻します（タイマーの残り時間やモードはそのまま）。</li>
-          <li><strong>セッション</strong>：集中が1回完了するたびに 1 増えます（休憩の完了では増えません）。</li>
-          <li><strong>休憩の種類の決まり方</strong>：集中が終わったあと、セッション数が設定の「長休憩に入るまでの集中回数」の倍数なら次は長休憩、そうでなければ小休憩に切り替わります。小休憩・長休憩が終わると、次は集中に戻ります。</li>
+          <li><strong>セッション</strong>：没入が1回完了するたびに 1 増えます（休憩の完了では増えません）。</li>
+          <li><strong>休憩の種類の決まり方</strong>：没入が終わったあと、セッション数が設定の「長休憩に入るまでの没入回数」の倍数なら次は長休憩、そうでなければ小休憩に切り替わります。小休憩・長休憩が終わると、次は没入に戻ります。</li>
           <li><strong>次のセッションを自動開始</strong>：設定でオンにすると、モードが切り替わったあとも自動でカウントが始まります。</li>
-          <li><strong>設定の保存</strong>：「保存」を押すと端末内（ブラウザの保存領域）にだけ記録され、このサイトの外には送られません。</li>
-          <li><strong>通知音</strong>：ブラウザの仕様で、一度ページ内をタップしてからのほうが確実に鳴ります。終了音のパターン・音量は設定で変更でき、「終了音を試聴」で確認できます。</li>
-        </ol>
+          <li><strong>残り時間（数値）を表示</strong>：ヘッダー右上のチェックで、円形タイマーの中央に残り時間を表示できます。</li>
+          <li><strong>設定の保存</strong>：設定変更は自動で端末内（ブラウザの保存領域）に記録され、このサイトの外には送られません。</li>
+          <li><strong>終了音を試聴</strong>：いまフォームに選んだパターン・音量で鳴ります。</li>
+          <li><strong>通知音が鳴らないとき</strong>：ブラウザの制限により、ページ上で一度操作（クリック）してからのほうが確実に鳴ります。</li>
+        </ul>
       </section>
-
-      <footer class="footer">
-        <p class="footerText">
-          音が鳴らない場合は、ページ上で一度操作（クリック）してから使ってください（ブラウザの制限です）。
-        </p>
-      </footer>
+      </div>
     </main>
 
     <script src="./assets/app.js" defer></script>
