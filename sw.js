@@ -3,7 +3,7 @@
 "use strict";
 
 // PWA が cache-first で返してしまうため、更新時はキャッシュ名を上げて無効化する
-const CACHE_NAME = "pomodoro-static-v9";
+const CACHE_NAME = "pomodoro-static-v10";
 
 // GitHub Pages では /<repo>/ 配下で配信されるため、相対パスで列挙する
 const PRECACHE_URLS = [
