@@ -143,14 +143,23 @@
   /** @type {AudioContext | null} */
   let sharedAudioCtx = null;
 
-  function getAudioContext() {
+  function getOrCreateAudioContext() {
     if (!sharedAudioCtx) {
       sharedAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
-    if (sharedAudioCtx.state === "suspended") {
-      void sharedAudioCtx.resume();
-    }
     return sharedAudioCtx;
+  }
+
+  /**
+   * モバイル（特に Android Chrome）では AudioContext が suspended のままだと無音になる。
+   * resume() は Promise を返すので、完了を待ってからオシレータを叩く必要がある。
+   */
+  async function resumeAudioContextIfNeeded() {
+    const ctx = getOrCreateAudioContext();
+    if (ctx.state === "suspended") {
+      await ctx.resume();
+    }
+    return ctx;
   }
 
   const settings = loadSettings();
@@ -168,7 +177,7 @@
    * 終了通知の音・振動（外部音声ファイルなし）。
    * @param {{ endSoundPattern: string, endSoundVolume: string, endVibrate: boolean }} prefs
    */
-  function playEndSound(prefs) {
+  async function playEndSound(prefs) {
     if (prefs.endVibrate && typeof navigator.vibrate === "function") {
       try {
         let pattern;
@@ -188,7 +197,7 @@
     }
 
     try {
-      const ctx = getAudioContext();
+      const ctx = await resumeAudioContextIfNeeded();
       const now = ctx.currentTime;
       const volMul = endSoundVolumeMultiplierFor(prefs);
       const cap = 0.32;
@@ -238,7 +247,7 @@
 
   function beep() {
     if (!audioUnlocked) return;
-    playEndSound(settings);
+    void playEndSound(settings);
   }
 
   const persisted = loadState();
@@ -452,8 +461,7 @@
 
     el.previewEndSoundBtn.addEventListener("click", () => {
       audioUnlocked = true;
-      void getAudioContext().resume();
-      playEndSound(readSoundPrefsFromForm());
+      void playEndSound(readSoundPrefsFromForm());
     });
 
     // 復元：保存時刻が古すぎる場合は捨てる（長期放置でおかしくなるのを避ける）
