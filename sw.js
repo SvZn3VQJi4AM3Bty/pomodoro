@@ -3,7 +3,7 @@
 "use strict";
 
 // PWA が cache-first で返してしまうため、更新時はキャッシュ名を上げて無効化する
-const CACHE_NAME = "pomodoro-static-v10";
+const CACHE_NAME = "pomodoro-static-v11";
 
 // GitHub Pages では /<repo>/ 配下で配信されるため、相対パスで列挙する
 const PRECACHE_URLS = [
@@ -67,18 +67,17 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // 静的ファイルは cache-first（なければネットワーク、成功したらキャッシュ）
+  // 静的ファイルは network-first（通常更新で最新反映、オフライン時はキャッシュ）
   event.respondWith(
     (async () => {
       const cache = await caches.open(CACHE_NAME);
-      const cached = await cache.match(req);
-      if (cached) return cached;
       try {
         const fresh = await fetch(req);
         if (fresh && fresh.ok) cache.put(req, fresh.clone());
         return fresh;
       } catch {
-        return Response.error();
+        const cached = await cache.match(req);
+        return cached || Response.error();
       }
     })(),
   );

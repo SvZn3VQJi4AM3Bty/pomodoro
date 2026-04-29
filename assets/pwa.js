@@ -50,7 +50,7 @@
 
   window.addEventListener("load", () => {
     navigator.serviceWorker
-      .register("./sw.js")
+      .register("./sw.js", { updateViaCache: "none" })
       .then((registration) => {
         // 起動時点で待機中の更新があれば通知する
         setupWaitingWorker(registration);
