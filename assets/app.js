@@ -48,6 +48,7 @@
     endSoundPattern: document.getElementById("endSoundPattern"),
     endSoundVolume: document.getElementById("endSoundVolume"),
     endVibrate: document.getElementById("endVibrate"),
+    vibrateSupportText: document.getElementById("vibrateSupportText"),
     restoreDefaultsBtn: document.getElementById("restoreDefaultsBtn"),
     previewEndSoundBtn: document.getElementById("previewEndSoundBtn"),
   };
@@ -424,6 +425,12 @@
     };
   }
 
+  function setVibrateSupportText() {
+    if (!el.vibrateSupportText) return;
+    const supported = typeof navigator.vibrate === "function";
+    el.vibrateSupportText.textContent = `この端末は振動API対応: ${supported ? "あり" : "なし"}`;
+  }
+
   function applySettingsFromForm() {
     const sound = readSoundPrefsFromForm();
     const next = {
@@ -446,6 +453,7 @@
 
   function init() {
     syncSettingsForm();
+    setVibrateSupportText();
 
     el.startPauseBtn.addEventListener("click", () => {
       if (running) pause();
