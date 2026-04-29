@@ -49,6 +49,7 @@
     endSoundVolume: document.getElementById("endSoundVolume"),
     endVibrate: document.getElementById("endVibrate"),
     vibrateSupportText: document.getElementById("vibrateSupportText"),
+    vibrateRequestText: document.getElementById("vibrateRequestText"),
     restoreDefaultsBtn: document.getElementById("restoreDefaultsBtn"),
     previewEndSoundBtn: document.getElementById("previewEndSoundBtn"),
   };
@@ -189,7 +190,9 @@
    * @param {{ endSoundPattern: string, endSoundVolume: string, endVibrate: boolean }} prefs
    */
   async function playEndSound(prefs) {
-    if (prefs.endVibrate && typeof navigator.vibrate === "function") {
+    if (!prefs.endVibrate) {
+      setVibrateRequestText("OFF");
+    } else if (typeof navigator.vibrate === "function") {
       try {
         let pattern;
         if (prefs.endSoundPattern === "single") {
@@ -201,10 +204,13 @@
         } else {
           pattern = [160, 110, 160, 110, 220];
         }
-        navigator.vibrate(pattern);
+        const accepted = navigator.vibrate(pattern);
+        setVibrateRequestText(accepted ? "受理" : "拒否");
       } catch {
-        // 無視
+        setVibrateRequestText("失敗");
       }
+    } else {
+      setVibrateRequestText("未対応");
     }
 
     try {
@@ -431,6 +437,14 @@
     el.vibrateSupportText.textContent = `この端末は振動API対応: ${supported ? "あり" : "なし"}`;
   }
 
+  /**
+   * @param {"未実行"|"受理"|"拒否"|"未対応"|"OFF"|"失敗"} status
+   */
+  function setVibrateRequestText(status) {
+    if (!el.vibrateRequestText) return;
+    el.vibrateRequestText.textContent = `振動リクエスト: ${status}`;
+  }
+
   function applySettingsFromForm() {
     const sound = readSoundPrefsFromForm();
     const next = {
@@ -454,6 +468,7 @@
   function init() {
     syncSettingsForm();
     setVibrateSupportText();
+    setVibrateRequestText("未実行");
 
     el.startPauseBtn.addEventListener("click", () => {
       if (running) pause();
